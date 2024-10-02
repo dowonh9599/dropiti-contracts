@@ -41,9 +41,32 @@ const config: HardhatUserConfig = {
         `0x${process.env.SEPOLIA_WALLET_PRIVATE_KEY ?? "0".repeat(64)}`,
       ],
     },
+    scrollSepolia: {
+      url: "https://sepolia-rpc.scroll.io",
+      chainId: 534351,
+      accounts: [
+        `0x${process.env.SCROLL_SEPOLIA_WALLET_PRIVATE_KEY ?? "0".repeat(64)}`,
+      ],
+    },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY ?? "",
+    apiKey: {
+      sepolia: process.env.ETHERSCAN_API_KEY || "",
+      scrollSepolia: process.env.SCROLLSCAN_API_KEY || "",
+    },
+    customChains: [
+      {
+        network: "scrollSepolia",
+        chainId: 534351,
+        urls: {
+          apiURL: "https://api-sepolia.scrollscan.com/api",
+          browserURL: "https://sepolia.scrollscan.com/",
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: true,
   },
 };
 

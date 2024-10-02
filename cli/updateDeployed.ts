@@ -28,7 +28,7 @@ for (const chainId of chainIds) {
         const [moduleName, contractName] = contractKey.split("#");
         if (
           moduleName === `${contractName}Module` ||
-          contractKey.endsWith("TransparentUpgradeableProxy")
+          moduleName === `${contractName}ProxyModule`
         ) {
           const contractAddress = deployedContracts[contractKey];
 
@@ -70,6 +70,7 @@ for (const chainId of chainIds) {
                 CHAIN_ID_TO_NETWORKISH(chainId as ChainId),
               );
               let filename = contractName;
+              console.log(filename);
               if (contractKey.endsWith("TransparentUpgradeableProxy")) {
                 filename = contractKey.replace(
                   "ProxyModule#TransparentUpgradeableProxy",
