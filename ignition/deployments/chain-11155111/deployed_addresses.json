@@ -1,0 +1,7 @@
+{
+  "eHKDModule#eHKD": "0xf11676cd2bdcE0597Eb952A36710c159C9023Eb6",
+  "RentalEscrowProxyModule#RentalEscrow": "0xff7f28FaF248a019142a87A30755e3380453233d",
+  "RentalEscrowProxyModule#TransparentUpgradeableProxy": "0xEf3C0136a99F264C290245bCf89EC7bad744A284",
+  "RentalEscrowProxyModule#ProxyAdmin": "0x5516346c331d2D03d4bdB0E5A88121910707de9d",
+  "RentalEscrowModule#RentalEscrow": "0xEf3C0136a99F264C290245bCf89EC7bad744A284"
+}
