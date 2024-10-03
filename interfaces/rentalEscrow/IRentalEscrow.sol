@@ -3,15 +3,13 @@ pragma solidity ^0.8.0;
 
 interface IRentalEscrow {
     struct Deal {
-        address maker;
-        address taker;
+        address payee;
+        address payer;
         address token;
         uint256 requestedAmount;
         uint256 settledAmount;
         uint256 releasedAmount;
-        bool isTakerFullySettled;
-        bool isMakerCanReleaseFund;
-        bool isFundFullyReleasedToMaker;
+        bool isPayeeCanReleaseFund;
         bool isActive;
     }
 
@@ -29,13 +27,13 @@ interface IRentalEscrow {
 
     function addWhitelistedTokens(address[] calldata _addrs, bool[] calldata _isWhitelisted) external;
 
-    function openDeal(address _taker, address _token, uint256 _requestedAmount) external;
+    function openDeal(address _payer, address _token, uint256 _requestedAmount) external;
 
     function getDeal(uint256 _dealId) external view returns (Deal memory);
 
-    function getMaker(uint256 dealId) external view returns (address);
+    function getPayee(uint256 dealId) external view returns (address);
 
-    function getTaker(uint256 dealId) external view returns (address);
+    function getPayer(uint256 dealId) external view returns (address);
 
     function getToken(uint256 dealId) external view returns (address);
 
@@ -45,11 +43,11 @@ interface IRentalEscrow {
 
     function getReleasedAmount(uint256 dealId) external view returns (uint256);
 
-    function isTakerFullySettled(uint256 dealId) external view returns (bool);
+    function isPayerFullySettled(uint256 dealId) external view returns (bool);
 
-    function canMakerReleaseFund(uint256 dealId) external view returns (bool);
+    function canPayeeReleaseFund(uint256 dealId) external view returns (bool);
 
-    function isFundFullyReleasedToMaker(uint256 dealId) external view returns (bool);
+    function isFundFullyReleasedToPayee(uint256 dealId) external view returns (bool);
 
     function isActive(uint256 dealId) external view returns (bool);
 
@@ -57,7 +55,7 @@ interface IRentalEscrow {
 
     function fundDeal(uint256 _dealId, address _token, uint256 _amount) external;
 
-    function setIsMakerCanReleaseFund(uint256 _dealId, bool value) external;
+    function setIsPayeeCanReleaseFund(uint256 _dealId, bool value) external;
 
     function releaseFunds(uint256 _dealId, address _token, uint256 _amount) external;
 

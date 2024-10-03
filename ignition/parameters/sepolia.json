@@ -2,5 +2,10 @@
   "RentalEscrowModule": {
     "_whitelisted": [],
     "_whitelistedTokens": []
+  },
+  "eHKDModule": {
+    "_admin": "0xFb648E797c7A7Cd67684B0dB3b221F1B80797f92",
+    "_tokenVault": "0x72eA7433c73beB5Ccaae0Beb4Ad3B73422B332f9",
+    "mintAmount": "1000000000000000000000000000"
   }
 }

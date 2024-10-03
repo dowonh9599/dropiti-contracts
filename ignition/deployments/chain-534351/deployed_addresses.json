@@ -1,7 +1,6 @@
 {
-  "eHKDModule#eHKD": "0x855d7212Ab7F7dfF7E4df4dc8e9419F7c8bD75B6",
-  "RentalEscrowProxyModule#RentalEscrow": "0xa366E4Ab791410aC7A3B901aC6c3F52755280379",
-  "RentalEscrowProxyModule#TransparentUpgradeableProxy": "0x55375b300D16e046ee3dc8736Cd3bFC63E997eEC",
-  "RentalEscrowProxyModule#ProxyAdmin": "0x5872108c34a49120249783A8DBDB7677871cc429",
-  "RentalEscrowModule#RentalEscrow": "0x55375b300D16e046ee3dc8736Cd3bFC63E997eEC"
+  "RentalEscrowProxyModule#RentalEscrow": "0xEf3C0136a99F264C290245bCf89EC7bad744A284",
+  "RentalEscrowProxyModule#TransparentUpgradeableProxy": "0x3D0Be554Bd13A3b4a9309862dA474BD278253Afc",
+  "RentalEscrowProxyModule#ProxyAdmin": "0x76d934f5C2c6F36Fe38f51909cFB25a278EB43dC",
+  "RentalEscrowModule#RentalEscrow": "0x3D0Be554Bd13A3b4a9309862dA474BD278253Afc"
 }
