@@ -37,9 +37,8 @@
   "scripts": {
     "reinstall": "rm yarn.lock && rm -rf node_modules && touch yarn.lock && yarn install",
     "prettier": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
-    "bulk-deploy-contracts": "chmod +x ./cli/bulk-deploy.sh && ./cli/bulk-deploy.sh",
-    "deploy-contract": "chmod +x ./cli/deploy.sh && ./cli/deploy.sh",
-    "upgrade-contract": "chmod +x ./cli/upgrade.sh && ./cli/upgrade.sh",
+    "deploy-contract": "chmod +x ./scripts/deploy/run.sh && bash ./scripts/deploy/run.sh",
+    "verify-contracts": "chmod +x ./scripts/verify/run.sh && bash ./scripts/verify/run.sh",
     "test:local": "yarn hardhat test test/localhost/*",
     "test:sepolia": "yarn hardhat test test/sepolia/*",
     "test:scroll-sepolia": "yarn hardhat test test/scroll-sepolia/*",

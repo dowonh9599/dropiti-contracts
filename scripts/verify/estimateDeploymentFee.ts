@@ -2,15 +2,11 @@ import fs from "fs";
 import yargs from "yargs";
 import { AlchemyProvider, ethers } from "ethers";
 import { hideBin } from "yargs/helpers";
-import RentalEscrowSepolia from "../abi/sepolia/RentalEscrow.json";
-import eHKDSepolia from "../abi/sepolia/eHKD.json";
+import RentalEscrowSepolia from "../../abi/sepolia/RentalEscrow.json";
+import eHKDSepolia from "../../abi/sepolia/eHKD.json";
 import dotenv from "dotenv";
 import Big from "big.js";
-import {
-  ChainId,
-  Networkish,
-  SUPPORTED_NETWORKISH,
-} from "../ignition/types/chain";
+import { SUPPORTED_NETWORKISH } from "../../ignition/types/chain";
 dotenv.config();
 
 function getContractArtifact(networkish: string, contract: string) {

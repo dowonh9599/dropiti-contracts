@@ -37,7 +37,7 @@ main() {
       exit 1
       ;;
   esac
-  yarn tsx ./cli/updateDeployed.ts
+  yarn tsx ./scripts/deploy/updateDeployed.ts
 }
 
 main $@
