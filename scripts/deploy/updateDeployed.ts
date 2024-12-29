@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { ChainId } from "../ignition/types/chain";
+import { ChainId } from "../../ignition/types/chain";
 import { type TransactionReceipt } from "ethers";
-import { CHAIN_ID_TO_NETWORKISH } from "../ignition/utils";
+import { CHAIN_ID_TO_NETWORKISH } from "../../ignition/utils";
 
 // Set up yargs to handle command line arguments
 const chainIds = Object.values(ChainId).filter(
@@ -35,7 +35,7 @@ for (const chainId of chainIds) {
           // get contract deployment receipt from journal.jsonl
           const journalJSONLPath = path.join(
             __dirname,
-            "..",
+            "../..",
             "ignition",
             "deployments",
             `chain-${chainId}`,
@@ -59,24 +59,15 @@ for (const chainId of chainIds) {
                 )
                 .at(0)?.receipt;
 
-            if (!contractDeploymentTxReceipt) {
-              return;
-            } else {
+            if (contractDeploymentTxReceipt) {
               // Define the output file path
               const outputFilePath = path.join(
                 __dirname,
-                "..",
+                "../..",
                 "deployed",
                 CHAIN_ID_TO_NETWORKISH(chainId as ChainId),
               );
               let filename = contractName;
-              console.log(filename);
-              if (contractKey.endsWith("TransparentUpgradeableProxy")) {
-                filename = contractKey.replace(
-                  "ProxyModule#TransparentUpgradeableProxy",
-                  "",
-                );
-              }
 
               const outputFile = path.join(outputFilePath, `${filename}.json`);
               // define new JSON Data
@@ -100,7 +91,7 @@ for (const chainId of chainIds) {
               // copy abi from artifacts to abi folder
               const abiSource = path.join(
                 __dirname,
-                "..",
+                "../..",
                 "ignition",
                 "deployments",
                 `chain-${chainId}`,
@@ -109,7 +100,7 @@ for (const chainId of chainIds) {
               );
               const abiDestinationFolder = path.join(
                 __dirname,
-                "..",
+                "../..",
                 "abi",
                 `${CHAIN_ID_TO_NETWORKISH(chainId)}`,
               );

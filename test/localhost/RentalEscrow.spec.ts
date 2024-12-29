@@ -1,17 +1,15 @@
 import { expect } from "chai";
 import hre, { ignition } from "hardhat";
 import { ERC20Mock, IRentalEscrow, RentalEscrow } from "typechain-types";
-import { BigNumberish, HDNodeWallet, MaxInt256 } from "ethers";
+import { HDNodeWallet, MaxInt256 } from "ethers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import Big from "big.js";
-import {
-  RentalEscrowProxyModule,
-  RentalEscrowUpgradeModule,
-} from "../../ignition/modules/RentalEscrow";
+import { RentalEscrowProxyModule } from "../../ignition/modules/RentalEscrow";
 
 describe("RentalEscrow", function () {
   let deployer: HardhatEthersSigner;
-  let whitelistCandidate: HDNodeWallet; // will be whitelisted
+  let admin: HDNodeWallet = hre.ethers.Wallet.createRandom().connect(
+    hre.ethers.provider,
+  ); // will be whitelisted
   let payeeA: HDNodeWallet = hre.ethers.Wallet.createRandom().connect(
     hre.ethers.provider,
   );
@@ -54,6 +52,7 @@ describe("RentalEscrow", function () {
         await ignition.deploy(RentalEscrowProxyModule, {
           parameters: {
             RentalEscrowModule: {
+              _admin: admin.address,
               _whitelisted: [],
               _whitelistedTokens: [
                 tokenA.target as string,
@@ -81,58 +80,58 @@ describe("RentalEscrow", function () {
       expect(await rentalEscrow.isTokenWhitelisted(tokenC.target)).to.be.equal(
         false,
       );
-      expect(await rentalEscrow.getDealCounter()).to.be.equal(0);
+      expect(await rentalEscrow.getTradeCounter()).to.be.equal(0);
     });
   });
 
-  describe("Payee initiate deal", () => {
-    it("should successfully create deal for payee", async () => {
+  describe("Payee initiate trade", () => {
+    it("should successfully create trade for payee", async () => {
       const tx = await deployer.sendTransaction({
-        to: await payeeA.getAddress(),
+        to: payeeA.address,
         value: hre.ethers.parseEther("1.0"), // Sending 1 ETH
       });
       await tx.wait();
 
       const rentalEscrowPayeeA = rentalEscrow.connect(payeeA);
       const requestAmount = hre.ethers.parseUnits("32000", 18);
-      await rentalEscrowPayeeA.openDeal(
+      await rentalEscrowPayeeA.openTrade(
         payerA.address,
         tokenA.target,
         requestAmount,
       );
 
-      expect(await rentalEscrowPayeeA.getDealCounter()).to.be.equal(1);
-      const deal = await rentalEscrowPayeeA.getDeal(0);
-      expect(deal[0]).to.be.equal(payeeA.address);
-      expect(deal[1]).to.be.equal(payerA.address);
-      expect(deal[2]).to.be.equal(tokenA.target);
-      expect(deal[3]).to.be.equal(requestAmount);
-      expect(deal[4]).to.be.equal(BigInt(0));
-      expect(deal[5]).to.be.equal(BigInt(0));
-      expect(deal[6]).to.be.equal(false);
-      expect(deal[7]).to.be.equal(true);
+      expect(await rentalEscrowPayeeA.getTradeCounter()).to.be.equal(1);
+      const trade = await rentalEscrowPayeeA.getTrade(0);
+      expect(trade[0]).to.be.equal(payeeA.address);
+      expect(trade[1]).to.be.equal(payerA.address);
+      expect(trade[2]).to.be.equal(tokenA.target);
+      expect(trade[3]).to.be.equal(requestAmount);
+      expect(trade[4]).to.be.equal(BigInt(0));
+      expect(trade[5]).to.be.equal(BigInt(0));
+      expect(trade[6]).to.be.equal(false);
+      expect(trade[7]).to.be.equal(true);
     });
   });
 
-  describe("Payee close deal", () => {
-    it("should prevent non-designated payee closing deal", async () => {
+  describe("Payee close trade", () => {
+    it("should prevent non-designated payee closing trade", async () => {
       const rentalEscrowPayeeB = rentalEscrow.connect(payeeB);
       const rentalEscrowPayerA = rentalEscrow.connect(payerA);
 
-      await expect(rentalEscrowPayeeB.closeDeal(0)).to.be.revertedWith(
-        "Only designated payee can close the deal",
+      await expect(rentalEscrowPayeeB.closeTrade(0)).to.be.revertedWith(
+        "Only designated payee can close the trade",
       );
-      await expect(rentalEscrowPayerA.closeDeal(0)).to.be.revertedWith(
-        "Only designated payee can close the deal",
+      await expect(rentalEscrowPayerA.closeTrade(0)).to.be.revertedWith(
+        "Only designated payee can close the trade",
       );
     });
   });
 
-  describe("Payer fund deal", () => {
+  describe("Payer fund trade", () => {
     let rentalEscrowPayerA: RentalEscrow;
     let rentalEscrowPayerB: RentalEscrow;
 
-    let deal: IRentalEscrow.DealStructOutput;
+    let trade: IRentalEscrow.TradeStructOutput;
     let settledAmount: string | bigint | boolean | undefined;
     let isFullySettled: string | bigint | boolean | undefined;
 
@@ -140,15 +139,15 @@ describe("RentalEscrow", function () {
     const settleAmount2 = hre.ethers.parseUnits("15000", 18);
     const settleAmount3 = hre.ethers.parseUnits("15000", 18);
     const settleAmount4 = hre.ethers.parseUnits("2000", 18);
-    it("should allow designated payer to fund any amount to deal", async () => {
+    it("should allow designated payer to fund any amount to trade", async () => {
       const tx1 = await deployer.sendTransaction({
-        to: await payeeA.getAddress(),
+        to: payeeA.address,
         value: hre.ethers.parseEther("1.0"), // Sending 1 ETH
       });
       await tx1.wait();
 
       const tx2 = await deployer.sendTransaction({
-        to: await payerA.getAddress(),
+        to: payerA.address,
         value: hre.ethers.parseEther("1.0"), // Sending 1 ETH
       });
       await tx2.wait();
@@ -174,49 +173,49 @@ describe("RentalEscrow", function () {
         .connect(payerA)
         .approve(rentalEscrowPayerB.target, MaxInt256);
 
-      await rentalEscrowPayerA.fundDeal(0, tokenA.target, settleAmount1);
+      await rentalEscrowPayerA.fundTrade(0, tokenA.target, settleAmount1);
 
-      deal = await rentalEscrowPayerA.getDeal(0);
-      settledAmount = deal.at(4);
-      isFullySettled = deal.at(6);
+      trade = await rentalEscrowPayerA.getTrade(0);
+      settledAmount = trade.at(4);
+      isFullySettled = trade.at(6);
 
       expect(settledAmount).to.be.equal(settleAmount1);
       expect(isFullySettled).to.be.equal(false);
     });
 
-    it("should prevent non-designated payer from funding the deal", async () => {
+    it("should prevent non-designated payer from funding the trade", async () => {
       await expect(
-        rentalEscrowPayerB.fundDeal(0, tokenA.target, settleAmount1),
-      ).to.be.revertedWith("Only designated payer can fund the deal");
+        rentalEscrowPayerB.fundTrade(0, tokenA.target, settleAmount1),
+      ).to.be.revertedWith("Only designated payer can fund the trade");
     });
 
-    it("should prevent funding the deal with incorrect token", async () => {
+    it("should prevent funding the trade with incorrect token", async () => {
       await expect(
-        rentalEscrowPayerA.fundDeal(0, tokenB.target, settleAmount1),
+        rentalEscrowPayerA.fundTrade(0, tokenB.target, settleAmount1),
       ).to.be.revertedWith("Incorrect token");
     });
 
-    it("should prevent funding the deal with non-whitelisted token", async () => {
+    it("should prevent funding the trade with non-whitelisted token", async () => {
       await expect(
-        rentalEscrowPayerA.fundDeal(0, tokenC.target, settleAmount1),
+        rentalEscrowPayerA.fundTrade(0, tokenC.target, settleAmount1),
       ).to.be.revertedWith("Token is not whitelisted");
     });
 
-    it("should allow payer to fund the deal with any amount, no more than requested amount", async () => {
-      await rentalEscrowPayerA.fundDeal(0, tokenA.target, settleAmount2);
+    it("should allow payer to fund the trade with any amount, no more than requested amount", async () => {
+      await rentalEscrowPayerA.fundTrade(0, tokenA.target, settleAmount2);
       await expect(
-        rentalEscrowPayerA.fundDeal(0, tokenA.target, settleAmount3),
+        rentalEscrowPayerA.fundTrade(0, tokenA.target, settleAmount3),
       ).to.be.revertedWith("Amount exceeds remaining requested amount");
 
-      deal = await rentalEscrowPayerA.getDeal(0);
-      settledAmount = deal.at(4);
-      isFullySettled = deal.at(6);
+      trade = await rentalEscrowPayerA.getTrade(0);
+      settledAmount = trade.at(4);
+      isFullySettled = trade.at(6);
       expect(settledAmount).to.be.equal(settleAmount1 + settleAmount2);
       expect(isFullySettled).to.be.equal(false);
 
-      await rentalEscrowPayerA.fundDeal(0, tokenA.target, settleAmount4);
-      deal = await rentalEscrowPayerA.getDeal(0);
-      settledAmount = deal.at(4);
+      await rentalEscrowPayerA.fundTrade(0, tokenA.target, settleAmount4);
+      trade = await rentalEscrowPayerA.getTrade(0);
+      settledAmount = trade.at(4);
       isFullySettled = await rentalEscrowPayerA.isPayerFullySettled(0);
 
       expect(isFullySettled).to.be.equal(true);
@@ -228,7 +227,7 @@ describe("RentalEscrow", function () {
     let rentalEscrowPayerB: RentalEscrow;
     let rentalEscrowPayeeB: RentalEscrow;
 
-    let deal: IRentalEscrow.DealStructOutput;
+    let trade: IRentalEscrow.TradeStructOutput;
     it("should allow payer to approve release fund", async () => {
       rentalEscrowPayerA = rentalEscrow.connect(payerA);
       rentalEscrowPayerB = rentalEscrow.connect(payerB);
@@ -249,12 +248,12 @@ describe("RentalEscrow", function () {
 
     it("should prevent setting true if settledAmount is 0", async () => {
       const tx = await deployer.sendTransaction({
-        to: await payeeB.getAddress(),
+        to: payeeB.address,
         value: hre.ethers.parseEther("1.0"), // Sending 1 ETH
       });
       await tx.wait();
 
-      await rentalEscrowPayeeB.openDeal(
+      await rentalEscrowPayeeB.openTrade(
         payerB.address,
         tokenB.target,
         hre.ethers.parseUnits("40000", 18),
@@ -272,7 +271,7 @@ describe("RentalEscrow", function () {
     let rentalEscrowPayerA: RentalEscrow;
     let rentalEscrowPayerB: RentalEscrow;
 
-    let deal: IRentalEscrow.DealStructOutput;
+    let trade: IRentalEscrow.TradeStructOutput;
     it("should prevent payee release fund unless payer approved to release", async () => {
       rentalEscrowPayeeA = rentalEscrow.connect(payeeA);
       rentalEscrowPayeeB = rentalEscrow.connect(payeeB);
@@ -358,9 +357,9 @@ describe("RentalEscrow", function () {
     let rentalEscrowPayerA: RentalEscrow;
     let rentalEscrowPayerB: RentalEscrow;
 
-    let deal: IRentalEscrow.DealStructOutput;
+    let trade: IRentalEscrow.TradeStructOutput;
 
-    it("should prevent payer from retrieving when deal is active", async () => {
+    it("should prevent payer from retrieving when trade is active", async () => {
       rentalEscrowPayerA = rentalEscrow.connect(payerA);
       rentalEscrowPayerB = rentalEscrow.connect(payerB);
 
@@ -370,7 +369,7 @@ describe("RentalEscrow", function () {
           tokenA.target,
           hre.ethers.parseUnits("1000", 18),
         ),
-      ).to.be.revertedWith("Deal is still active");
+      ).to.be.revertedWith("Trade is still active");
     });
 
     it("should prevent non-designated payer from retrieving", async () => {
@@ -379,7 +378,7 @@ describe("RentalEscrow", function () {
       rentalEscrowPayerA = rentalEscrow.connect(payerA);
       rentalEscrowPayerB = rentalEscrow.connect(payerB);
 
-      await rentalEscrowPayeeA.closeDeal(0);
+      await rentalEscrowPayeeA.closeTrade(0);
       await expect(
         rentalEscrowPayerB.retrieveFunds(
           0,

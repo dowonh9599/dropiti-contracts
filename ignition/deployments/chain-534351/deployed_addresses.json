@@ -1,6 +1,3 @@
 {
-  "RentalEscrowProxyModule#RentalEscrow": "0xEf3C0136a99F264C290245bCf89EC7bad744A284",
-  "RentalEscrowProxyModule#TransparentUpgradeableProxy": "0x3D0Be554Bd13A3b4a9309862dA474BD278253Afc",
-  "RentalEscrowProxyModule#ProxyAdmin": "0x76d934f5C2c6F36Fe38f51909cFB25a278EB43dC",
-  "RentalEscrowModule#RentalEscrow": "0x3D0Be554Bd13A3b4a9309862dA474BD278253Afc"
+  "RentalEscrowModule#RentalEscrow": "0xd1cFAbeC3C4B5B0E244523435eb75b4294479a8F"
 }

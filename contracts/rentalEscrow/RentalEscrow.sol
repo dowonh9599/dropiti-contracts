@@ -3,120 +3,121 @@ pragma solidity ^0.8.0;
 
 import "../../interfaces/rentalEscrow/IRentalEscrow.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract RentalEscrow is
-    OwnableUpgradeable,
-    PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    IRentalEscrow
-{
-    uint256 dealCounter;
-    mapping(uint256 => Deal) deals;
+contract RentalEscrow is Ownable, Pausable, ReentrancyGuard, IRentalEscrow {
+    uint256 tradeCounter;
+    mapping(uint256 => Trade) trades;
     mapping(address => bool) whitelisted;
     mapping(address => bool) whitelistedTokens;
 
-    event DealCreated(
-        uint256 dealId,
+    event TradeCreated(
+        uint256 tradeId,
         address payee,
         address payer,
         address token,
         uint256 amount
     );
-    event DealClosed(uint256 dealId);
+    event TradeClosed(uint256 tradeId);
     event PayerSettled(
-        uint256 dealId,
+        uint256 tradeId,
         uint256 amount,
         uint256 totalSettledAmount
     );
-    event PayerApprovedFundRelease(uint256 dealId, bool isPayeeCanReleaseFund);
+    event PayerApprovedFundRelease(uint256 tradeId, bool isPayeeCanReleaseFund);
     event PayeeReleasedFund(
-        uint256 dealId,
+        uint256 tradeId,
         uint256 amount,
         uint256 totalReleasedAmount
     );
     event PayerRetrievedFund(
-        uint256 dealId,
+        uint256 tradeId,
         uint256 amount,
         uint256 remainingSettledAmount
     );
 
-    function initialize(
+    constructor(
+        address _admin,
         address[] memory _whitelisted,
         address[] memory _whitelistedTokens
-    ) public initializer {
-        __Ownable_init(msg.sender);
-        __Pausable_init();
-        __ReentrancyGuard_init();
-
-        dealCounter = 0;
+    ) Ownable(_admin) Pausable() ReentrancyGuard() {
+        tradeCounter = 0;
 
         // Whitelist accounts
         whitelisted[msg.sender] = true;
-        for (uint i = 0; i < _whitelisted.length; i++) {
+        for (uint i = 0; i < _whitelisted.length; ) {
             whitelisted[_whitelisted[i]] = true;
+            unchecked {
+                i++;
+            }
         }
 
         // Whitelist tokens
-        for (uint i = 0; i < _whitelistedTokens.length; i++) {
+        for (uint i = 0; i < _whitelistedTokens.length; ) {
             whitelistedTokens[_whitelistedTokens[i]] = true;
+            unchecked {
+                i++;
+            }
         }
     }
 
     // getters
-    function getDeal(uint256 _dealId) public view returns (Deal memory) {
-        Deal storage deal = deals[_dealId];
-        return deal;
+    function getTrade(uint256 _tradeId) public view returns (Trade memory) {
+        Trade storage trade = trades[_tradeId];
+        return trade;
     }
 
-    function getDealCounter() public view returns (uint256) {
-        return dealCounter;
+    function getTradeCounter() public view returns (uint256) {
+        return tradeCounter;
     }
 
-    function getPayee(uint256 dealId) external view returns (address) {
-        return deals[dealId].payee;
+    function getPayee(uint256 tradeId) external view returns (address) {
+        return trades[tradeId].payee;
     }
 
-    function getPayer(uint256 dealId) external view returns (address) {
-        return deals[dealId].payer;
+    function getPayer(uint256 tradeId) external view returns (address) {
+        return trades[tradeId].payer;
     }
 
-    function getToken(uint256 dealId) external view returns (address) {
-        return deals[dealId].token;
+    function getToken(uint256 tradeId) external view returns (address) {
+        return trades[tradeId].token;
     }
 
     function getRequestedAmount(
-        uint256 dealId
+        uint256 tradeId
     ) external view returns (uint256) {
-        return deals[dealId].requestedAmount;
+        return trades[tradeId].requestedAmount;
     }
 
-    function getSettledAmount(uint256 dealId) external view returns (uint256) {
-        return deals[dealId].settledAmount;
+    function getSettledAmount(uint256 tradeId) external view returns (uint256) {
+        return trades[tradeId].settledAmount;
     }
 
-    function getReleasedAmount(uint256 dealId) external view returns (uint256) {
-        return deals[dealId].releasedAmount;
+    function getReleasedAmount(
+        uint256 tradeId
+    ) external view returns (uint256) {
+        return trades[tradeId].releasedAmount;
     }
 
-    function isPayerFullySettled(uint256 dealId) public view returns (bool) {
-        return deals[dealId].settledAmount == deals[dealId].requestedAmount;
+    function isPayerFullySettled(uint256 tradeId) public view returns (bool) {
+        return trades[tradeId].settledAmount == trades[tradeId].requestedAmount;
     }
 
-    function canPayeeReleaseFund(uint256 dealId) external view returns (bool) {
-        return deals[dealId].isPayeeCanReleaseFund;
+    function canPayeeReleaseFund(uint256 tradeId) external view returns (bool) {
+        return trades[tradeId].isPayeeCanReleaseFund;
     }
 
     function isFundFullyReleasedToPayee(
-        uint256 dealId
+        uint256 tradeId
     ) public view returns (bool) {
-        return deals[dealId].releasedAmount == deals[dealId].requestedAmount;
+        return
+            trades[tradeId].releasedAmount == trades[tradeId].requestedAmount;
     }
 
-    function isActive(uint256 dealId) external view returns (bool) {
-        return deals[dealId].isActive;
+    function isActive(uint256 tradeId) external view returns (bool) {
+        return trades[tradeId].isActive;
     }
 
     modifier onlyWhitelisted() {
@@ -143,8 +144,11 @@ contract RentalEscrow is
         address[] calldata _addrs,
         bool[] calldata _isWhitelisted
     ) external onlyWhitelisted {
-        for (uint i = 0; i < _addrs.length; i++) {
+        for (uint i = 0; i < _addrs.length; ) {
             whitelisted[_addrs[i]] = _isWhitelisted[i];
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -170,150 +174,157 @@ contract RentalEscrow is
         address[] calldata _addrs,
         bool[] calldata _isWhitelisted
     ) external onlyWhitelisted {
-        for (uint i = 0; i < _addrs.length; i++) {
+        for (uint i = 0; i < _addrs.length; ) {
             whitelistedTokens[_addrs[i]] = _isWhitelisted[i];
+            unchecked {
+                i++;
+            }
         }
     }
 
-    function fundDeal(
-        uint256 _dealId,
+    function fundTrade(
+        uint256 _tradeId,
         address _token,
         uint256 _amount
     ) external whenNotPaused nonReentrant {
-        require(getDeal(_dealId).payee != address(0), "Deal not found");
-        Deal storage deal = deals[_dealId];
+        Trade storage trade = trades[_tradeId];
+        require(trade.payee != address(0), "Trade not found");
 
-        require(deal.isActive, "Deal is inactive");
+        require(trade.isActive, "Trade is inactive");
         require(
-            msg.sender == deal.payer,
-            "Only designated payer can fund the deal"
+            msg.sender == trade.payer,
+            "Only designated payer can fund the trade"
         );
         require(isTokenWhitelisted(_token), "Token is not whitelisted");
-        require(_token == deal.token, "Incorrect token");
+        require(_token == trade.token, "Incorrect token");
         require(_amount > 0, "Invalid amount");
         require(
-            _amount <= (deal.requestedAmount - deal.settledAmount),
+            _amount <= (trade.requestedAmount - trade.settledAmount),
             "Amount exceeds remaining requested amount"
         );
 
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
-        deal.settledAmount += _amount;
+        trade.settledAmount += _amount;
 
-        emit PayerSettled(_dealId, _amount, deal.settledAmount);
+        emit PayerSettled(_tradeId, _amount, trade.settledAmount);
     }
 
     function setIsPayeeCanReleaseFund(
-        uint256 _dealId,
+        uint256 _tradeId,
         bool value
     ) external whenNotPaused nonReentrant {
-        require(getDeal(_dealId).payee != address(0), "Deal not found");
-        Deal storage deal = deals[_dealId];
+        Trade storage trade = trades[_tradeId];
+        require(trade.payee != address(0), "Trade not found");
 
-        require(deal.isActive, "Deal is inactive");
+        require(trade.isActive, "Trade is inactive");
         require(
-            msg.sender == deal.payer,
+            msg.sender == trade.payer,
             "Only designated payer can approve fund release"
         );
         if (value) {
             require(
-                deal.settledAmount > 0,
+                trade.settledAmount > 0,
                 "Payer haven't settled any fund yet"
             );
             require(
-                !deal.isPayeeCanReleaseFund,
+                !trade.isPayeeCanReleaseFund,
                 "Payer already approved fund release"
             );
         }
 
-        deal.isPayeeCanReleaseFund = value;
+        trade.isPayeeCanReleaseFund = value;
 
-        emit PayerApprovedFundRelease(_dealId, value);
+        emit PayerApprovedFundRelease(_tradeId, value);
     }
 
     function releaseFunds(
-        uint256 _dealId,
+        uint256 _tradeId,
         address _token,
         uint256 _amount
     ) external whenNotPaused nonReentrant {
-        require(getDeal(_dealId).payee != address(0), "Deal not found");
-        Deal storage deal = deals[_dealId];
+        Trade storage trade = trades[_tradeId];
+        require(trade.payee != address(0), "Trade not found");
 
-        require(deal.isActive, "Deal is inactive");
+        require(trade.isActive, "Trade is inactive");
         require(
-            !isFundFullyReleasedToPayee(_dealId),
+            !isFundFullyReleasedToPayee(_tradeId),
             "Fund already fully released to payee"
         );
         require(
-            msg.sender == deal.payee,
+            msg.sender == trade.payee,
             "Only designated payee can call to release funds"
         );
-        require(_token == deal.token, "Incorrect token");
+        require(_token == trade.token, "Incorrect token");
         require(isTokenWhitelisted(_token), "Token is not whitelisted");
         require(
-            deal.isPayeeCanReleaseFund,
+            trade.isPayeeCanReleaseFund,
             "Fund release not approved by payer"
         );
         require(_amount > 0, "Invalid request amount");
         require(
-            _amount <= (deal.requestedAmount - deal.releasedAmount),
+            _amount <= (trade.requestedAmount - trade.releasedAmount),
             "Cannot release amount higher than remaining requested amount"
         );
         require(
-            _amount <= (deal.settledAmount - deal.releasedAmount),
+            _amount <= (trade.settledAmount - trade.releasedAmount),
             "Cannot release amount higher than amount settled by payer remaining"
         );
 
-        IERC20(_token).transfer(deal.payee, _amount);
+        IERC20(_token).transfer(trade.payee, _amount);
 
-        deal.releasedAmount += _amount;
-        if (deal.releasedAmount == deal.requestedAmount) {
-            deal.isActive = false;
+        trade.releasedAmount += _amount;
+        if (trade.releasedAmount == trade.requestedAmount) {
+            trade.isActive = false;
         }
 
-        emit PayeeReleasedFund(_dealId, _amount, deal.releasedAmount);
+        emit PayeeReleasedFund(_tradeId, _amount, trade.releasedAmount);
     }
 
     function retrieveFunds(
-        uint256 _dealId,
+        uint256 _tradeId,
         address _token,
         uint256 _amount
     ) external whenNotPaused nonReentrant {
-        require(getDeal(_dealId).payee != address(0), "Deal not found");
-        Deal storage deal = deals[_dealId];
+        Trade storage trade = trades[_tradeId];
+        require(trade.payee != address(0), "Trade not found");
 
-        require(!deal.isActive, "Deal is still active");
+        require(!trade.isActive, "Trade is still active");
         require(
-            msg.sender == deal.payer,
+            msg.sender == trade.payer,
             "Only designated payer can call to retrieve funds"
         );
-        require(_token == deal.token, "Incorrect token");
+        require(_token == trade.token, "Incorrect token");
         require(isTokenWhitelisted(_token), "Token is not whitelisted");
         require(
-            (deal.settledAmount - deal.releasedAmount) > 0,
+            (trade.settledAmount - trade.releasedAmount) > 0,
             "No settled amount remaining"
         );
         require(_amount > 0, "Invalid request amount");
         require(
-            _amount <= (deal.settledAmount - deal.releasedAmount),
+            _amount <= (trade.settledAmount - trade.releasedAmount),
             "Cannot retrieve amount higher than remaining settled amount"
         );
 
         IERC20(_token).transfer(msg.sender, _amount);
 
-        deal.settledAmount -= _amount;
+        trade.settledAmount -= _amount;
 
-        emit PayerRetrievedFund(_dealId, _amount, deal.settledAmount);
+        if (trade.settledAmount == 0) {
+            delete trades[_tradeId];
+        }
+
+        emit PayerRetrievedFund(_tradeId, _amount, trade.settledAmount);
     }
 
-    function openDeal(
+    function openTrade(
         address _payer,
         address _token,
         uint256 _requestedAmount
     ) external whenNotPaused nonReentrant {
         require(isTokenWhitelisted(_token), "Token is not whitelisted");
 
-        deals[dealCounter] = Deal({
+        Trade memory newTrade = Trade({
             payee: msg.sender,
             payer: _payer,
             token: _token,
@@ -323,10 +334,11 @@ contract RentalEscrow is
             isPayeeCanReleaseFund: false,
             isActive: true
         });
-        dealCounter++;
+        trades[tradeCounter] = newTrade;
+        tradeCounter++;
 
-        emit DealCreated(
-            dealCounter,
+        emit TradeCreated(
+            tradeCounter,
             msg.sender,
             _payer,
             _token,
@@ -334,17 +346,17 @@ contract RentalEscrow is
         );
     }
 
-    function closeDeal(uint256 _dealId) external whenNotPaused nonReentrant {
-        require(getDeal(_dealId).payee != address(0), "Deal not found");
-        Deal storage deal = deals[_dealId];
+    function closeTrade(uint256 _tradeId) external whenNotPaused nonReentrant {
+        Trade storage trade = trades[_tradeId];
+        require(trade.payee != address(0), "Trade not found");
 
-        require(deal.isActive, "Deal is not active");
+        require(trade.isActive, "Trade is not active");
         require(
-            msg.sender == deal.payee,
-            "Only designated payee can close the deal"
+            msg.sender == trade.payee,
+            "Only designated payee can close the trade"
         );
-        deal.isActive = false;
+        trade.isActive = false;
 
-        emit DealClosed(_dealId);
+        emit TradeClosed(_tradeId);
     }
 }

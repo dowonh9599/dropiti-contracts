@@ -1,7 +1,8 @@
 {
   "RentalEscrowModule": {
-    "_whitelisted": [],
-    "_whitelistedTokens": []
+    "_admin": "0xFb648E797c7A7Cd67684B0dB3b221F1B80797f92",
+    "_whitelisted": ["0x3257a00345831bd6D9ed69742e1f6dC24bF4887d"],
+    "_whitelistedTokens": ["0xf11676cd2bdcE0597Eb952A36710c159C9023Eb6"]
   },
   "eHKDModule": {
     "_admin": "0xFb648E797c7A7Cd67684B0dB3b221F1B80797f92",

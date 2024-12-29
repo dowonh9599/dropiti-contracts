@@ -38,7 +38,7 @@ main() {
   _deploy_contract "$contract_name" "$network" "$force_reset"
 
   # Run any post-deployment scripts or commands
-  yarn tsx ./cli/updateDeployed.ts
+  yarn tsx ./scripts/deploy/updateDeployed.ts
 }
 
 # Pass all arguments to the main function
